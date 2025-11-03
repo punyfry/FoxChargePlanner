@@ -1,0 +1,28 @@
+name: Daily FoxChargePlanner Run
+
+on:
+  schedule:
+    - cron: '30 16 * * *'  # Runs every day at 16:30 UTC (~18:30 local in Sweden)
+  workflow_dispatch:      # Allows manual runs
+
+jobs:
+  run-foxchargeplanner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run FoxChargePlanner
+        run: node src/index.js
+        env:
+          PRICE_CLASS: SE3                    # Configurable for your electricity price area
+          FOXESS_API_KEY: ${{ secrets.FOXESS_API_KEY }}

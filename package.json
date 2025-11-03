@@ -1,0 +1,25 @@
+{
+    "name": "foxchargeplanner",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.ts",
+        "dev": "tsx watch src/index.ts",
+        "test": "jest"
+    },
+    "dependencies": {
+        "dotenv": "^17.2.3",
+        "node-fetch": "^3.3.2",
+        "zod": "^4.1.12"
+    },
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^24.9.2",
+        "jest": "^30.2.0",
+        "ts-jest": "^29.4.5",
+        "tsx": "^4.20.6",
+        "typescript": "^5.9.3"
+    }
+}
