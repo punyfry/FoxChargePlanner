@@ -4,6 +4,8 @@ import { getTomorrowDate } from "./utils/time.js";
 import { setChargeWindowsOnFoxEss } from "./services/foxesscloud.js";
 import { pickChargingWindows } from "./utils/pickChargingWindows.js";
 import { isChargingWorthIt } from "./utils/evaluateChargeBlocks.js";
+import { TimePeriodHour } from "./types/index.js";
+import { CONFIG } from "./config/config.js";
 
 export async function runChargePlanner(): Promise<void> {
   log.info("Fetching tomorrow's prices...");
@@ -23,6 +25,29 @@ export async function runChargePlanner(): Promise<void> {
 
   const chargingWindows = pickChargingWindows(prices);
   log.info(`Calculated charging windows: ${JSON.stringify(chargingWindows)}`);
+
+  const PMDischargeWindow: TimePeriodHour = { 
+      startHour: CONFIG.dischargePeriods.pm.startHour, 
+      endHour: CONFIG.dischargePeriods.pm.endHour 
+  };
+
+  let AMDischargeWindow: TimePeriodHour = { 
+      startHour: CONFIG.dischargePeriods.am.startHour, 
+      endHour: CONFIG.dischargePeriods.am.endHour 
+  };
+
+  const isPMChargingWorthIt = isChargingWorthIt(prices, chargingWindows.pmWindow, PMDischargeWindow);
+
+  if (!isPMChargingWorthIt) {
+    log.info("PM charging is not economically worth it. Disabling PM charge window.");
+    chargingWindows.pmWindow = {
+      start: new Date(0), // Set to epoch start
+      end: new Date(0), // Set to epoch start
+      prices: []
+    };
+
+    AMDischargeWindow
+  }
 
   if (!isChargingWorthIt(prices, chargingWindows)) {
     log.info("Charging is not economically worth it tomorrow. Disabling charge windows.");

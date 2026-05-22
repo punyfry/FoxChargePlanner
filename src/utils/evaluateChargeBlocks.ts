@@ -1,4 +1,4 @@
-import { Schedule, PriceSlot } from "../types/index.js";
+import { PriceSlot, ScheduleWindow, TimePeriodHour } from "../types/index.js";
 import { CONFIG } from "../config/config.js";
 import { log } from "./logging.js";
 
@@ -10,9 +10,10 @@ import { log } from "./logging.js";
  */
 export function isChargingWorthIt(
   prices: PriceSlot[],
-  chargingWindow: Schedule
+  chargingWindow: ScheduleWindow,
+  dischargeWindow: TimePeriodHour
 ): boolean {
-  const dischargeSlots = getDischargePriceSlots(prices);
+  const dischargeSlots = getDischargePriceSlots(prices, dischargeWindow);
   if (dischargeSlots.length === 0) return false;
 
   const expectedDischargePrice =
@@ -20,7 +21,7 @@ export function isChargingWorthIt(
 
   log.info(`Expected average discharge price: ${expectedDischargePrice.toFixed(4)} SEK/kWh`);
 
-  const chargeSlots = [...chargingWindow.amWindow.prices, ...chargingWindow.pmWindow.prices];
+  const chargeSlots = [...chargingWindow.prices];
   if (chargeSlots.length === 0) return false;
 
   const avgChargePrice =
@@ -36,14 +37,10 @@ export function isChargingWorthIt(
   return expectedDischargePrice - avgChargePrice - degradationCost > 0;
 }
 
-function getDischargePriceSlots(prices: PriceSlot[]) {
-  const dischargeAM = CONFIG.dischargePeriods.am;
-  const dischargePM = CONFIG.dischargePeriods.pm;
-
+function getDischargePriceSlots(prices: PriceSlot[], dischargeWindow: TimePeriodHour): PriceSlot[] {
   return prices.filter(slot => {
     const t = new Date(slot.time_start);
-    return (t.getHours() >= dischargeAM.startHour && t.getHours() < dischargeAM.endHour) ||
-           (t.getHours() >= dischargePM.startHour && t.getHours() < dischargePM.endHour);
+    return (t.getHours() >= dischargeWindow.startHour && t.getHours() < dischargeWindow.endHour);
   });
 }
 
@@ -64,5 +61,8 @@ function calculateDegradationFromCostPerKwh(): number {
   const batteryReplacementCost = batteryCostPerKwh * totalCapacity_kWh;
   const usableCapacity = totalCapacity_kWh * DoD; // kWh per full cycle
   const costPerKWh = batteryReplacementCost / (cycleLife * usableCapacity);
-  return costPerKWh / roundTripEfficiency;
+  const degradationCost = costPerKWh / roundTripEfficiency; // SEK/kWh delivered
+  console.log(`Degradation cost per delivered kWh: ${degradationCost.toFixed(4)} SEK/kWh`);
+
+  return degradationCost;
 }
